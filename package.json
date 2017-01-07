@@ -1,0 +1,11 @@
+{
+  "name": "optimus",
+  "version": "0.1.0",
+  "description": "Transform API Blueprint into any other formats",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ainun Nazieb",
+  "license": "MIT"
+}

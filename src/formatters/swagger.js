@@ -1,11 +1,16 @@
 import transformToAst from "./ast.js"
 import Strings from "string"
+import Regex from "re.js"
+
+let enums = {};
 
 /**
  *
  *  @param blueprint
  */
 export default function transformToSwagger(blueprint) {
+    enums = {};
+
     const ast = transformToAst(blueprint).ast;
     const result = {
         "swagger": "2.0",
@@ -18,6 +23,17 @@ export default function transformToSwagger(blueprint) {
     const groups = processResourceGroups(ast.resourceGroups);
     result["tags"] = groups["tags"];
     result["paths"] = groups["paths"];
+
+    if (ast.content.length == ast.resourceGroups.length + 1) {
+        const dataStructures = ast.content[ ast.content.length - 1 ].content;
+        result["definitions"] = getDefinitions(dataStructures);
+    }
+
+    for (let _enum in enums) {
+        const members = enums[_enum];
+        const definitionName = convertEnumDefinitionName(_enum);
+        result["definitions"][definitionName] = convertEnumToDefinition(_enum, members);
+    }
 
     return result
 }
@@ -38,10 +54,14 @@ function processResourceGroups(resourceGroups) {
         for (let resource of group.resources) {
             const uri = resource.uriTemplate;
 
+            const params = getResourceParams(resource);
+
             const actions = getActions(resource.actions);
             for (let method in actions) {
                 actions[method]["tags"]= [group.name];
-                actions[method]["operationId"] = convertOperationId(method, uri)
+                actions[method]["operationId"] = convertOperationId(method, uri);
+
+                actions[method]["parameters"] = mergeResourceAndActionParams(params, actions[method]["parameters"]);
             }
 
             result.paths[uri] = actions;
@@ -89,6 +109,8 @@ function getActions(actions) {
             }
         }
 
+        path.parameters = getActionParams(action);
+
         const method = action.method.toLowerCase();
         result[method] = path;
     }
@@ -135,15 +157,167 @@ function getResponseSchema(content) {
                 const definition = contentItem.content[0].element;
                 schema["type"] = "array";
                 schema["items"] = {
-                    "$ref": "#/definitions/" + convertDefinitionName(definition)
+                    "$ref": convertDefinitionPath(definition)
                 };
             } else {
-                schema["$ref"] = "#/definitions/" + convertDefinitionName(contentItem.element);
+                schema["$ref"] = convertDefinitionPath(contentItem.element);
             }
         }
     }
 
     return schema;
+}
+
+function getResourceParams(resource) {
+    let params = [];
+
+    Regex(/{.*?}/).each(resource.uriTemplate, matches => {
+        const paramString = Strings(matches[0]).replaceAll(/{|\?|}/, '').s;
+
+        for (let paramName of paramString.split(",")) {
+            const location = matches[0].indexOf("?") == -1 ? "path" : "query";
+            const param = {
+                "name": paramName,
+                "in": location,
+            };
+
+            params.push(param);
+        }
+    });
+    
+    params = [...new Set(params)]; // array unique
+    for (let i in params) {
+        for (let param of resource.parameters) {
+            if (params[i].name != param.name) {
+                continue;
+            }
+
+            params[i]["required"] = param["required"];
+            params[i]["type"] = param["type"];
+            params[i]["description"] = param["description"];
+        }
+    }
+
+    return params;
+}
+
+function getActionParams(action) {
+    let params = [];
+
+    for (let param of action.parameters) {
+        const newParam = {
+            "name": param["name"],
+            "required": param["required"],
+            "type": param["type"],
+            "description": param["description"],
+        };
+
+        if (!param["required"]) {
+            newParam["default"] = param["default"];
+        }
+
+        params.push(newParam);
+    }
+
+    if (action.examples.length > 0 && action.examples[0].hasOwnProperty("requests")) {
+        const request = action.examples[0].requests[0];
+        if (request.content.length > 0) {
+            const bodyParam = {
+                "name": "body",
+                "in": "body",
+                "required": true,
+                "schema": getResponseSchema(request.content),
+            };
+
+            params.push(bodyParam);
+        }
+    }
+
+    return params;
+}
+
+function mergeResourceAndActionParams(resourceParams, actionParams) {
+    const result = [];
+
+    if (actionParams.length > 0) {
+        for (let actionParam of actionParams) {
+            if (actionParam.hasOwnProperty("in") && actionParam.in == "body") {
+                result.push(actionParam);
+                continue;
+            }
+
+            for (let resourceParam of resourceParams) {
+                if (resourceParam.name == actionParam.name) {
+                    actionParam["in"] = resourceParam["in"];
+                    result.push(actionParam);
+                }
+            }
+        }
+    } else if (resourceParams.length > 0) {
+        for (let resourceParam of resourceParams) {
+            result.push(resourceParam);
+        }
+    }
+
+    return result;
+}
+
+function getDefinitions(dataStructures) {
+    const result = {};
+
+    for (let structure of dataStructures) {
+        structure = structure.content[0];
+        const definition = {
+            "title": structure.meta.id,
+            "type": "object",
+            "properties": {},
+        };
+
+        for (let content of structure.content) {
+            if (content.element != "member") {
+                continue;
+            }
+
+            const property = {
+                "description": content.meta.description,
+            };
+
+            const memberName = content.content.key.content;
+
+            const memberType = content.content.value.element;
+            if (isPrimitiveType(memberType)) {
+                property["type"] = memberType;
+            } else if (isInheritedType(memberType)) {
+                property["$ref"] = convertDefinitionPath(memberName);
+            } else if (memberType == "enum") {
+                property["$ref"] = convertEnumDefinitionPath(memberName);
+                enums[memberName] = content.content.value.content;
+            }
+
+            definition.properties[memberName] = property;
+        }
+
+        const definitionName = convertDefinitionName(structure.meta.id);
+        result[definitionName] = definition;
+    }
+
+    return result;
+}
+
+function convertEnumToDefinition(name, members) {
+    const title = Strings(name).capitalize().s;
+    const type = members[0].element;
+    const values = [];
+
+    for (let member of members) {
+        values.push(member.content);
+    }
+
+    return {
+        "title": title,
+        "type": type,
+        "enum": values,
+    };
 }
 
 function convertOperationId(method, uri) {
@@ -159,5 +333,35 @@ function convertOperationId(method, uri) {
 }
 
 function convertDefinitionName(name) {
-    return Strings(name).capitalize().camelize();
+    return Strings(name).capitalize().camelize().s;
+}
+
+function convertDefinitionPath(name) {
+    return "#/definitions/" + convertDefinitionName(name);
+}
+
+function convertEnumDefinitionName(name) {
+    return convertDefinitionName("enum " + name);
+}
+
+function convertEnumDefinitionPath(name) {
+    return convertDefinitionPath("enum " + name);
+}
+
+const primitives = ["number", "string", "boolean"];
+const structures = ["array", "object", "enum"];
+
+function isPrimitiveType(type) {
+    return (primitives.indexOf(type) != -1);
+}
+
+function isStructureType(type) {
+    return (structures.indexOf(type) != -1);
+}
+
+function isInheritedType(type) {
+    return (
+        !isPrimitiveType(type) &&
+        !isStructureType(type)
+    )
 }

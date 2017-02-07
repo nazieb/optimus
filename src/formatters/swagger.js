@@ -2,15 +2,11 @@ import transformToAst from "./ast.js"
 import Strings from "string"
 import Regex from "re.js"
 
-let enums = {};
-
 /**
  *
  *  @param blueprint
  */
 export default function transformToSwagger(blueprint) {
-    enums = {};
-
     const ast = transformToAst(blueprint).ast;
     const result = {
         "swagger": "2.0",
@@ -29,13 +25,7 @@ export default function transformToSwagger(blueprint) {
         result["definitions"] = getDefinitions(dataStructures);
     }
 
-    for (let _enum in enums) {
-        const members = enums[_enum];
-        const definitionName = convertEnumDefinitionName(_enum);
-        result["definitions"][definitionName] = convertEnumToDefinition(_enum, members);
-    }
-
-    return result
+    return result;
 }
 
 function processResourceGroups(resourceGroups) {
@@ -59,8 +49,6 @@ function processResourceGroups(resourceGroups) {
             const actions = getActions(resource.actions);
             for (let method in actions) {
                 actions[method]["tags"]= [group.name];
-                actions[method]["operationId"] = convertOperationId(method, uri);
-
                 actions[method]["parameters"] = mergeResourceAndActionParams(params, actions[method]["parameters"]);
             }
 
@@ -76,12 +64,13 @@ function getActions(actions) {
 
     for (let action of actions) {
         const path = {
-            "description": action.description,
-            "summary": action.description,
-            "consumes": [],
-            "produces": [],
-            "parameters": [],
-            "responses": {},
+            description: action.description,
+            summary: action.description,
+            consumes: [],
+            produces: [],
+            parameters: [],
+            responses: {},
+            operationId: "",
         };
 
         for (let sample of action.examples) {
@@ -106,6 +95,8 @@ function getActions(actions) {
                 }
 
                 path.responses[response.name] = pathResponse;
+
+                path.operationId = Strings(action.name).slugify().camelize().s;
             }
         }
 
@@ -290,8 +281,10 @@ function getDefinitions(dataStructures) {
             } else if (isInheritedType(memberType)) {
                 property["$ref"] = convertDefinitionPath(memberName);
             } else if (memberType == "enum") {
-                property["$ref"] = convertEnumDefinitionPath(memberName);
-                enums[memberName] = content.content.value.content;
+                const enums = convertEnum(content.content.value.content);
+
+                property["type"] = enums["type"];
+                property["enum"] = enums["enum"];
             }
 
             definition.properties[memberName] = property;
@@ -304,20 +297,17 @@ function getDefinitions(dataStructures) {
     return result;
 }
 
-function convertEnumToDefinition(name, members) {
-    const title = Strings(name).capitalize().s;
-    const type = members[0].element;
+function convertEnum(members) {
+    const result = [];
     const values = [];
 
     for (let member of members) {
+        result["type"] = member.element;
         values.push(member.content);
     }
 
-    return {
-        "title": title,
-        "type": type,
-        "enum": values,
-    };
+    result["enum"] = values;
+    return result;
 }
 
 function convertOperationId(method, uri) {
@@ -338,14 +328,6 @@ function convertDefinitionName(name) {
 
 function convertDefinitionPath(name) {
     return "#/definitions/" + convertDefinitionName(name);
-}
-
-function convertEnumDefinitionName(name) {
-    return convertDefinitionName("enum " + name);
-}
-
-function convertEnumDefinitionPath(name) {
-    return convertDefinitionPath("enum " + name);
 }
 
 const primitives = ["number", "string", "boolean"];

@@ -310,18 +310,6 @@ function convertEnum(members) {
     return result;
 }
 
-function convertOperationId(method, uri) {
-    let cleanUri = Strings(uri);
-
-    const paramPos = uri.indexOf('{');
-    if (paramPos >= 0) {
-        cleanUri = cleanUri.left(paramPos);
-    }
-    cleanUri = cleanUri.replaceAll("/", " ");
-
-    return Strings(method + cleanUri).slugify().camelize().s;
-}
-
 function convertDefinitionName(name) {
     return Strings(name).capitalize().camelize().s;
 }

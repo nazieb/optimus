@@ -290,7 +290,7 @@ function getDefinitions(dataStructures) {
             properties[memberName] = property;
         }
 
-        if (content.element === "object") {
+        if (structure.element === "object") {
             definition["properties"] = properties;
         } else {
             definition["allOf"] = [

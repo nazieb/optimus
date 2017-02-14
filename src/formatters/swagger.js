@@ -258,10 +258,15 @@ function getDefinitions(dataStructures) {
 
     for (let structure of dataStructures) {
         structure = structure.content[0];
-        const definition = {
+        const definitionName = convertDefinitionName(structure.meta.id);
+
+        const defaultDefinition = {
             "title": structure.meta.id,
             "type": "object",
         };
+        const definition = result[definitionName] ?
+            Object.assign(result[definitionName], defaultDefinition) :
+            defaultDefinition;
 
         const properties = {};
         for (let content of structure.content) {
@@ -290,9 +295,13 @@ function getDefinitions(dataStructures) {
             properties[memberName] = property;
         }
 
-        if (structure.element === "object") {
-            definition["properties"] = properties;
-        } else {
+        if (structure.element !== "object") {
+            const parentName = convertDefinitionName(structure.element);
+            if (!result[parentName]) {
+                result[parentName] = {};
+            }
+            result[parentName]["discriminator"] = "";
+
             definition["allOf"] = [
                 {
                     "$ref": convertDefinitionPath(structure.element),
@@ -301,9 +310,10 @@ function getDefinitions(dataStructures) {
                     "properties": properties,
                 }
             ];
+        } else {
+            definition["properties"] = properties;
         }
 
-        const definitionName = convertDefinitionName(structure.meta.id);
         result[definitionName] = definition;
     }
 

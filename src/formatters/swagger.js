@@ -261,16 +261,16 @@ function getDefinitions(dataStructures) {
         const definition = {
             "title": structure.meta.id,
             "type": "object",
-            "properties": {},
         };
 
+        const properties = {};
         for (let content of structure.content) {
             if (content.element != "member") {
                 continue;
             }
 
             const property = {
-                "description": content.meta.description,
+                "description": content.meta.description || "",
             };
 
             const memberName = content.content.key.content;
@@ -287,7 +287,20 @@ function getDefinitions(dataStructures) {
                 property["enum"] = enums["enum"];
             }
 
-            definition.properties[memberName] = property;
+            properties[memberName] = property;
+        }
+
+        if (content.element === "object") {
+            definition["properties"] = properties;
+        } else {
+            definition["allOf"] = [
+                {
+                    "$ref": convertDefinitionPath(structure.element),
+                },
+                {
+                    "properties": properties,
+                }
+            ];
         }
 
         const definitionName = convertDefinitionName(structure.meta.id);

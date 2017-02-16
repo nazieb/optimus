@@ -378,12 +378,8 @@ function isInheritedType(type) {
 
 function isDateValue(dateString) {
     const format = "YYYY-MM-DD";
-    const date = moment(dateString, format);
-    if (!date.isValid()) {
-        return false;
-    }
-
-    return date.format(format) === dateString
+    const date = moment(dateString, format, true);
+    return date.isValid();
 }
 
 function isDateTimeValue(dateString) {

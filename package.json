@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "drafter.js": "^2.6.2",
+    "moment": "^2.17.1",
     "nopt": "^4.0.1",
     "re.js": "^1.1.0",
     "string": "^3.3.3"

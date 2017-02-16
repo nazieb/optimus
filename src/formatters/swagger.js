@@ -1,6 +1,7 @@
 import transformToAst from "./ast.js"
 import Strings from "string"
 import Regex from "re.js"
+import moment from "moment"
 
 /**
  *
@@ -263,6 +264,7 @@ function getDefinitions(dataStructures) {
         const defaultDefinition = {
             "title": structure.meta.id,
             "type": "object",
+            "required": [],
         };
         const definition = result[definitionName] ?
             Object.assign(result[definitionName], defaultDefinition) :
@@ -283,6 +285,13 @@ function getDefinitions(dataStructures) {
             const memberType = content.content.value.element;
             if (isPrimitiveType(memberType)) {
                 property["type"] = memberType;
+
+                const sample = content.content.value.content;
+                if (memberType === "string" && isDateValue(sample)) {
+                    property["format"] = "date"
+                } else if (memberType === "string" && isDateTimeValue(sample)) {
+                    property["format"] = "date-time"
+                }
             } else if (isInheritedType(memberType)) {
                 property["$ref"] = convertDefinitionPath(memberName);
             } else if (memberType == "enum") {
@@ -293,6 +302,14 @@ function getDefinitions(dataStructures) {
             }
 
             properties[memberName] = property;
+
+            if (
+                content.hasOwnProperty("attributes") &&
+                content.attributes.hasOwnProperty("typeAttributes") &&
+                content.attributes.typeAttributes.indexOf("required") > -1
+            ) {
+                definition.required.push(memberName);
+            }
         }
 
         if (structure.element !== "object") {
@@ -357,4 +374,32 @@ function isInheritedType(type) {
         !isPrimitiveType(type) &&
         !isStructureType(type)
     )
+}
+
+function isDateValue(dateString) {
+    const format = "YYYY-MM-DD";
+    const date = moment(dateString, format);
+    if (!date.isValid()) {
+        return false;
+    }
+
+    return date.format(format) === dateString
+}
+
+function isDateTimeValue(dateString) {
+    const possibleFormats = [
+        "YYYY-MM-DDTHH:mm:ssZ",
+        "YYYY-MM-DDTHH:mm:ss.SZ",
+        "YYYY-MM-DDTHH:mm:ss.SSZ",
+        "YYYY-MM-DDTHH:mm:ss,SZ",
+        "YYYY-MM-DDTHH:mm:ss,SSZ",
+    ];
+
+    for (let format of possibleFormats) {
+        const date = moment(dateString, format, true);
+        if (date.isValid()) {
+            return true;
+        }
+    }
+    return false;
 }

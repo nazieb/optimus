@@ -145,14 +145,23 @@ function getResponseSchema(content) {
         if (responseContent.element == "dataStructure") {
             const contentItem = responseContent.content[0];
 
-            if (contentItem.element == "array") {
-                const definition = contentItem.content[0].element;
-                schema["type"] = "array";
-                schema["items"] = {
-                    "$ref": convertDefinitionPath(definition)
-                };
-            } else {
-                schema["$ref"] = convertDefinitionPath(contentItem.element);
+            switch (contentItem.element) {
+                case "array":
+                    const itemsType = contentItem.content[0].element;
+                    schema["type"] = "array";
+                    schema["items"] = isPrimitiveType(itemsType) ? {
+                            "type": itemsType,
+                        } : {
+                            "$ref": convertDefinitionPath(itemsType),
+                        };
+                    break;
+
+                case "object":
+                    schema["type"] = "object";
+                    break;
+
+                default:
+                    schema["$ref"] = convertDefinitionPath(contentItem.element);
             }
         }
     }
@@ -299,6 +308,13 @@ function getDefinitions(dataStructures) {
 
                 property["type"] = enums["type"];
                 property["enum"] = enums["enum"];
+            } else if (memberType == "array") {
+                const itemsType = content.content.value.content[0].element;
+                property["items"] = isPrimitiveType(itemsType) ? {
+                    "type": itemsType,
+                } : {
+                    "$ref": convertDefinitionPath(itemsType),
+                };
             }
 
             properties[memberName] = property;

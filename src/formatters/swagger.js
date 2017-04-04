@@ -17,7 +17,7 @@ export default function transformToSwagger(blueprint) {
         },
     };
 
-    const groups = processResourceGroups(ast.resourceGroups);
+    const groups = processResourceGroups(ast.resourceGroups, ast.name);
     result["tags"] = groups["tags"];
     result["paths"] = groups["paths"];
 
@@ -29,7 +29,7 @@ export default function transformToSwagger(blueprint) {
     return result;
 }
 
-function processResourceGroups(resourceGroups) {
+function processResourceGroups(resourceGroups, defaultTag) {
     const result = {
         paths: {},
         tags: [],
@@ -37,7 +37,7 @@ function processResourceGroups(resourceGroups) {
 
     for (let group of resourceGroups) {
         const tag = {
-            "name": group.name,
+            "name": group.name != "" ? group.name : defaultTag,
             "description": group.description,
         };
         result.tags.push(tag);
@@ -49,7 +49,7 @@ function processResourceGroups(resourceGroups) {
 
             const actions = getActions(resource.actions);
             for (let method in actions) {
-                actions[method]["tags"]= [group.name];
+                actions[method]["tags"]= [group.name != "" ? group.name : defaultTag];
                 actions[method]["parameters"] = mergeResourceAndActionParams(params, actions[method]["parameters"]);
             }
 

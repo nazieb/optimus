@@ -1,0 +1,18 @@
+language: node_js
+node_js:
+  - 7
+  - 6
+  - 5
+  - 4
+
+cache:
+  directories:
+  - node_modules
+
+deployment:
+  - provider: npm
+    api_key:
+      secure: "EsTBCOonLV3xfUs9xMvN4dE/lQx+gkryQx/mFUBDg3XHLLgsc3Z2mkbyaierqgvSwYusFO8p04tRzBAA4Pop0Aw30Fi6n2ftoUF/YYwq+gB6ZEWbo9BA1exv5F3Vu3cPw0lv9l5KIWg4WXisEDXpT/l7HeLh+rSiXBiGEFy9XlneKrpnlUex3OdbS5hn/rxEY/dy5i297QQ8ndKwv7sRdVl85VtavtbuSpZ7vXj/RII7RNGNc/J/20FHMpkQZgJSL3Ov/qGvgJR2Ix5I0bS1ujuAicI0TY7jIyjzBqON4Rer9q//My5CoEESmyMqdjClYc/o8ImX9rKoVa2sam4H0iXu8qw5C8vZjnjNPvK1dTC2Yl3qGMOlRy6EguoR9FQzmEgAZ5sjT0jo1fgXWpPSA7jrFuo9zsZyVXKeL6pUI79FIGOdtuCUQzDJGRILeCBCb1dqLDkhJnxmfP2vciVcq9SLTKHDviiJj4kDK+qsdfnMeS1yMhZv8nvQ40mZMsrFF0br6VEo8wnGS5AeLZutnNmz5HkzOlxYWTKnw8ZjKEhnlbqbruYxboZVfXLZNnannQZY5WQy2182pqcFOp6NpQNzllj/2qBs85h4a8UjyctfN2vcH2EIrfwMlCTpJ5vgGnWsHRQsb0ZEwoZtaGfJWLDtzr4wM6j6oNSZ3EEHo/I="
+    on:
+      tags: true
+    skip_cleanup: true

@@ -1,5 +1,5 @@
 {
-  "name": "optimus",
+  "name": "nazieb/optimus",
   "version": "0.1.0",
   "description": "Transform API Blueprint into any other formats",
   "main": "dist/index.js",

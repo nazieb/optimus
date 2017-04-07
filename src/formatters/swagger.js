@@ -309,6 +309,7 @@ function getDefinitions(dataStructures) {
                 property["type"] = enums["type"];
                 property["enum"] = enums["enum"];
             } else if (memberType == "array") {
+                property["type"] = memberType;
                 const itemsType = content.content.value.content[0].element;
                 property["items"] = isPrimitiveType(itemsType) ? {
                     "type": itemsType,

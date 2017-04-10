@@ -311,7 +311,7 @@ function getDefinitions(dataStructures) {
             } else if (memberType == "array") {
                 property["type"] = memberType;
                 const itemsType = content.content.value.content[0].element;
-                property["items"] = isPrimitiveType(itemsType) ? {
+                property["items"] = isPrimitiveType(itemsType) || itemsType == "object" ? {
                     "type": itemsType,
                 } : {
                     "$ref": convertDefinitionPath(itemsType),

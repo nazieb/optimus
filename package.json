@@ -1,6 +1,6 @@
 {
   "name": "optimusjs",
-  "version": "0.1.11",
+  "version": "0.2.1",
   "description": "Transform API Blueprint into any other formats",
   "main": "dist/index.js",
   "bin": {

@@ -43,8 +43,7 @@ function processResourceGroups(resourceGroups, defaultTag) {
         result.tags.push(tag);
 
         for (let resource of group.resources) {
-            const uri = resource.uriTemplate;
-
+            const uri = cleanQueryParam(resource.uriTemplate);
             const params = getResourceParams(resource);
 
             const actions = getActions(resource.actions);
@@ -53,7 +52,11 @@ function processResourceGroups(resourceGroups, defaultTag) {
                 actions[method]["parameters"] = mergeResourceAndActionParams(params, actions[method]["parameters"]);
             }
 
-            result.paths[uri] = actions;
+            if (!result.paths.hasOwnProperty(uri)) {
+                result.paths[uri] = actions;
+            } else {
+                result.paths[uri] = Object.assign(result.paths[uri], actions);
+            }
         }
     }
 
@@ -415,4 +418,11 @@ function isDateTimeValue(dateString) {
         }
     }
     return false;
+}
+
+function cleanQueryParam(uri) {
+    uri = uri.replace(/\{\?.*}/g, "");
+    uri = uri.replace(/\?.*}/g, "}");
+
+    return uri;
 }

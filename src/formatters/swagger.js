@@ -235,6 +235,18 @@ function getActionParams(action) {
 
             params.push(bodyParam);
         }
+
+        for (let header of request.headers) {
+            if (/\{.*}/g.test(header.value)) {
+                const headerParam = {
+                    "name": header.name,
+                    "in": "header",
+                    "type": "string",
+                };
+
+                params.push(headerParam);
+            }
+        }
     }
 
     return params;
@@ -245,7 +257,7 @@ function mergeResourceAndActionParams(resourceParams, actionParams) {
 
     if (actionParams.length > 0) {
         for (let actionParam of actionParams) {
-            if (actionParam.hasOwnProperty("in") && actionParam.in == "body") {
+            if (actionParam.hasOwnProperty("in") && (actionParam.in == "body" || actionParam.in == "header")) {
                 result.push(actionParam);
                 continue;
             }

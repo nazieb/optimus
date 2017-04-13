@@ -283,6 +283,10 @@ function getDefinitions(dataStructures) {
 
     for (let structure of dataStructures) {
         structure = structure.content[0];
+        if (structure.element != "object") {
+            continue;
+        }
+
         const definitionName = convertDefinitionName(structure.meta.id);
 
         const defaultDefinition = {
@@ -390,7 +394,7 @@ function convertDefinitionPath(name) {
     return "#/definitions/" + convertDefinitionName(name);
 }
 
-const primitives = ["number", "string", "boolean"];
+const primitives = ["number", "string", "boolean", "integer"];
 const structures = ["array", "object", "enum"];
 
 function isPrimitiveType(type) {

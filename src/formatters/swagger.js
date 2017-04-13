@@ -283,7 +283,7 @@ function getDefinitions(dataStructures) {
 
     for (let structure of dataStructures) {
         structure = structure.content[0];
-        if (structure.element != "object") {
+        if (isPrimitiveType(structure.element)) {
             continue;
         }
 

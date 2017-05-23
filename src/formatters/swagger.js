@@ -3,6 +3,8 @@ import Strings from "string"
 import Regex from "re.js"
 import moment from "moment"
 
+let securityDefinitions = {};
+
 /**
  *
  *  @param blueprint
@@ -25,6 +27,8 @@ export default function transformToSwagger(blueprint) {
         const dataStructures = ast.content[ ast.content.length - 1 ].content;
         result["definitions"] = getDefinitions(dataStructures);
     }
+
+    result["securityDefinitions"] = securityDefinitions;
 
     return result;
 }
@@ -75,6 +79,7 @@ function getActions(actions) {
             parameters: [],
             responses: {},
             operationId: "",
+            security: [],
         };
 
         for (let sample of action.examples) {
@@ -105,6 +110,7 @@ function getActions(actions) {
         }
 
         path.parameters = getActionParams(action);
+        path.security = getSecurityDefinitions(action);
 
         const method = action.method.toLowerCase();
         result[method] = path;
@@ -276,6 +282,35 @@ function mergeResourceAndActionParams(resourceParams, actionParams) {
     }
 
     return result;
+}
+
+function getSecurityDefinitions(action) {
+    const regexRule = / \{security\:(.*)}/;
+    let security = [];
+
+    if (action.examples.length > 0 && action.examples[0].hasOwnProperty("requests")) {
+        const request = action.examples[0].requests[0];
+
+        for (let header of request.headers) {
+            const match = header.value.match(regexRule);
+            if (match != null) {
+                const definition = {
+                    "in": "header",
+                    "name": header.name,
+                    "type": match[1],
+                };
+
+                const definitionName = header.value.replace(match[0], "");
+                securityDefinitions[definitionName] = definition;
+
+                const actionSecurity = {};
+                actionSecurity[definitionName] = [];
+                security.push(actionSecurity);
+            }
+        }
+    }
+
+    return security;
 }
 
 function getDefinitions(dataStructures) {

@@ -281,6 +281,18 @@ function mergeResourceAndActionParams(resourceParams, actionParams) {
         }
     }
 
+    for (let i in result) {
+        const param = result[i];
+
+        for (let y in securityDefinitions) {
+            const security = securityDefinitions[y];
+            if (security.name === param.name) {
+                result.splice(i, 1);
+                break;
+            }
+        }
+    }
+
     return result;
 }
 

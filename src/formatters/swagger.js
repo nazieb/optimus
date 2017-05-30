@@ -261,23 +261,18 @@ function getActionParams(action) {
 function mergeResourceAndActionParams(resourceParams, actionParams) {
     const result = [];
 
+    if (resourceParams.length > 0) {
+        for (let resourceParam of resourceParams) {
+           result.push(resourceParam);
+        }
+    }
+
     if (actionParams.length > 0) {
         for (let actionParam of actionParams) {
             if (actionParam.hasOwnProperty("in") && (actionParam.in == "body" || actionParam.in == "header")) {
                 result.push(actionParam);
                 continue;
             }
-
-            for (let resourceParam of resourceParams) {
-                if (resourceParam.name == actionParam.name) {
-                    actionParam["in"] = resourceParam["in"];
-                    result.push(actionParam);
-                }
-            }
-        }
-    } else if (resourceParams.length > 0) {
-        for (let resourceParam of resourceParams) {
-            result.push(resourceParam);
         }
     }
 
@@ -382,6 +377,8 @@ function getDefinitions(dataStructures) {
                 } : {
                     "$ref": convertDefinitionPath(itemsType),
                 };
+            } else if (memberType == "object") {
+                property["type"] = memberType;
             }
 
             properties[memberName] = property;

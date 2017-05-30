@@ -261,20 +261,34 @@ function getActionParams(action) {
 function mergeResourceAndActionParams(resourceParams, actionParams) {
     const result = [];
 
-    if (resourceParams.length > 0) {
-        for (let resourceParam of resourceParams) {
-           result.push(resourceParam);
-        }
-    }
-
     if (actionParams.length > 0) {
+        for (let resourceParam of resourceParams) {
+            if (resourceParam.hasOwnProperty("type")) {
+                result.push(resourceParam);
+            }
+        }
+
+        for (let actionParam of actionParams) {
+            for (let resourceParam of resourceParams) {
+                if (resourceParam.name == actionParam.name) {
+                    actionParam["in"] = resourceParam["in"];
+                    result.push(actionParam);
+                }
+            }
+        }
+
         for (let actionParam of actionParams) {
             if (actionParam.hasOwnProperty("in") && (actionParam.in == "body" || actionParam.in == "header")) {
                 result.push(actionParam);
                 continue;
             }
         }
+    } else if (resourceParams.length > 0) {
+        for (let resourceParam of resourceParams) {
+            result.push(resourceParam);
+        }
     }
+
 
     for (let i in result) {
         const param = result[i];

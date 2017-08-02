@@ -377,7 +377,7 @@ function getDefinitions(dataStructures) {
                     property["format"] = "date-time"
                 }
             } else if (isInheritedType(memberType)) {
-                property["$ref"] = convertDefinitionPath(memberName);
+                property["$ref"] = convertDefinitionPath(memberType);
             } else if (memberType == "enum") {
                 const enums = convertEnum(content.content.value.content);
 

@@ -356,16 +356,13 @@ function getDefinitions(dataStructures) {
 
         const properties = {};
         for (let content of structure.content) {
-            if (content.element != "member") {
+            if (content.element !== "member") {
                 continue;
             }
 
-            const property = {
-                "description": content.meta.description || "",
-            };
+            let property = {};
 
             const memberName = content.content.key.content;
-
             const memberType = content.content.value.element;
             if (isPrimitiveType(memberType)) {
                 property["type"] = memberType;
@@ -378,22 +375,25 @@ function getDefinitions(dataStructures) {
                 }
             } else if (isInheritedType(memberType)) {
                 property["$ref"] = convertDefinitionPath(memberType);
-            } else if (memberType == "enum") {
+            } else if (memberType === "enum") {
                 const enums = convertEnum(content.content.value.content);
 
                 property["type"] = enums["type"];
                 property["enum"] = enums["enum"];
-            } else if (memberType == "array") {
+            } else if (memberType === "array") {
                 property["type"] = memberType;
                 const itemsType = content.content.value.content[0].element;
-                property["items"] = isPrimitiveType(itemsType) || itemsType == "object" ? {
+                property["items"] = isPrimitiveType(itemsType) || itemsType === "object" ? {
                     "type": itemsType,
                 } : {
                     "$ref": convertDefinitionPath(itemsType),
                 };
-            } else if (memberType == "object") {
-                property["type"] = memberType;
+            } else if (memberType === "object") {
+                property = convertObject(content.content.value);
             }
+
+            property["description"] = content.hasOwnProperty("meta") && content.meta.hasOwnProperty("description") ?
+                content.meta.description : "";
 
             properties[memberName] = property;
 
@@ -442,6 +442,37 @@ function convertEnum(members) {
 
     result["enum"] = values;
     return result;
+}
+
+function convertObject(object) {
+    const property = {"type": "object"};
+    if (!object || !object.hasOwnProperty("content") || !Array.isArray(object.content)) {
+        return property;
+    }
+
+    const additionalProperties = {};
+    for (let content of object.content) {
+        if (
+            content.hasOwnProperty("content") &&
+            content.content.hasOwnProperty("key") &&
+            content.content.key.hasOwnProperty("attributes") &&
+            content.content.key.attributes.hasOwnProperty("variable") &&
+            content.content.key.attributes.variable === true &&
+            content.content.hasOwnProperty("value") &&
+            content.content.value.hasOwnProperty("element")
+        ) {
+            const memberType = content.content.value.element;
+            if (isPrimitiveType(memberType)) {
+                additionalProperties["type"] = memberType;
+            } else if (isInheritedType(memberType)) {
+                additionalProperties["$ref"] = convertDefinitionPath(memberType);
+            }
+
+            property["additionalProperties"] = additionalProperties;
+        }
+    }
+
+    return property;
 }
 
 function convertDefinitionName(name) {

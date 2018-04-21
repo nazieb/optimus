@@ -6,7 +6,6 @@ import moment from "moment"
 let securityDefinitions = {};
 
 /**
- *
  *  @param blueprint
  */
 export default function transformToSwagger(blueprint) {
@@ -23,7 +22,7 @@ export default function transformToSwagger(blueprint) {
     result["tags"] = groups["tags"];
     result["paths"] = groups["paths"];
 
-    if (ast.content.length == ast.resourceGroups.length + 1) {
+    if (ast.content.length === ast.resourceGroups.length + 1) {
         const dataStructures = ast.content[ ast.content.length - 1 ].content;
         result["definitions"] = getDefinitions(dataStructures);
     }
@@ -41,7 +40,7 @@ function processResourceGroups(resourceGroups, defaultTag) {
 
     for (let group of resourceGroups) {
         const tag = {
-            "name": group.name != "" ? group.name : defaultTag,
+            "name": group.name !== "" ? group.name : defaultTag,
             "description": group.description,
         };
         result.tags.push(tag);
@@ -52,7 +51,7 @@ function processResourceGroups(resourceGroups, defaultTag) {
 
             const actions = getActions(resource.actions);
             for (let method in actions) {
-                actions[method]["tags"]= [group.name != "" ? group.name : defaultTag];
+                actions[method]["tags"]= [group.name !== "" ? group.name : defaultTag];
                 actions[method]["parameters"] = mergeResourceAndActionParams(params, actions[method]["parameters"]);
             }
 
@@ -88,7 +87,7 @@ function getActions(actions) {
 
             for (let response of sample.responses) {
                 const contentType = getResponseContentType(response);
-                if (path.produces.indexOf(contentType) == -1) {
+                if (path.produces.indexOf(contentType) === -1) {
                     path.produces.push(contentType);
                 }
 
@@ -97,7 +96,7 @@ function getActions(actions) {
                     "schema": {}
                 };
 
-                if (contentType == "text/plain") {
+                if (contentType === "text/plain") {
                     pathResponse.schema["type"] = "string";
                 } else {
                     pathResponse.schema = getResponseSchema(response.content);
@@ -126,8 +125,8 @@ function getRequestsContentTypes(requests) {
     for (let request of requests) {
         for (let header of request.headers) {
             if (
-                header.name.toLowerCase() == "content-type" &&
-                types.indexOf(header.value) == -1
+                header.name.toLowerCase() === "content-type" &&
+                types.indexOf(header.value) === -1
             ) {
                 types.push(header.value);
             }
@@ -139,7 +138,7 @@ function getRequestsContentTypes(requests) {
 
 function getResponseContentType(response) {
     for (let header of response.headers) {
-        if (header.name.toLowerCase() == "content-type") {
+        if (header.name.toLowerCase() === "content-type") {
             return header.value;
         }
     }
@@ -151,7 +150,7 @@ function getResponseSchema(content) {
     const schema = {};
 
     for (let responseContent of content) {
-        if (responseContent.element == "dataStructure") {
+        if (responseContent.element === "dataStructure") {
             const contentItem = responseContent.content[0];
 
             switch (contentItem.element) {
@@ -185,7 +184,7 @@ function getResourceParams(resource) {
         const paramString = Strings(matches[0]).replaceAll(/{|\?|}/, '').s;
 
         for (let paramName of paramString.split(",")) {
-            const location = matches[0].indexOf("?") == -1 ? "path" : "query";
+            const location = matches[0].indexOf("?") === -1 ? "path" : "query";
             const param = {
                 "name": paramName,
                 "in": location,
@@ -198,7 +197,7 @@ function getResourceParams(resource) {
     params = [...new Set(params)]; // array unique
     for (let i in params) {
         for (let param of resource.parameters) {
-            if (params[i].name != param.name) {
+            if (params[i].name !== param.name) {
                 continue;
             }
 
@@ -270,7 +269,7 @@ function mergeResourceAndActionParams(resourceParams, actionParams) {
 
         for (let actionParam of actionParams) {
             for (let resourceParam of resourceParams) {
-                if (resourceParam.name == actionParam.name) {
+                if (resourceParam.name === actionParam.name) {
                     actionParam["in"] = resourceParam["in"];
                     result.push(actionParam);
                 }
@@ -278,9 +277,8 @@ function mergeResourceAndActionParams(resourceParams, actionParams) {
         }
 
         for (let actionParam of actionParams) {
-            if (actionParam.hasOwnProperty("in") && (actionParam.in == "body" || actionParam.in == "header")) {
+            if (actionParam.hasOwnProperty("in") && (actionParam.in === "body" || actionParam.in === "header")) {
                 result.push(actionParam);
-                continue;
             }
         }
     } else if (resourceParams.length > 0) {
@@ -373,6 +371,10 @@ function getDefinitions(dataStructures) {
                 } else if (memberType === "string" && isDateTimeValue(sample)) {
                     property["format"] = "date-time"
                 }
+
+              if (content.content.value.hasOwnProperty("content")) {
+                property["example"] = content.content.value.content;
+              }
             } else if (isInheritedType(memberType)) {
                 property["$ref"] = convertDefinitionPath(memberType);
             } else if (memberType === "enum") {
@@ -394,6 +396,8 @@ function getDefinitions(dataStructures) {
 
             property["description"] = content.hasOwnProperty("meta") && content.meta.hasOwnProperty("description") ?
                 content.meta.description : "";
+
+            property["readOnly"] = property["description"].toLowerCase().indexOf("read only") >= 0;
 
             properties[memberName] = property;
 
@@ -487,11 +491,11 @@ const primitives = ["number", "string", "boolean", "integer"];
 const structures = ["array", "object", "enum"];
 
 function isPrimitiveType(type) {
-    return (primitives.indexOf(type) != -1);
+    return (primitives.indexOf(type) !== -1);
 }
 
 function isStructureType(type) {
-    return (structures.indexOf(type) != -1);
+    return (structures.indexOf(type) !== -1);
 }
 
 function isInheritedType(type) {
@@ -522,6 +526,7 @@ function isDateTimeValue(dateString) {
             return true;
         }
     }
+
     return false;
 }
 

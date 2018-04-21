@@ -4,6 +4,7 @@ import Regex from "re.js"
 import moment from "moment"
 
 let securityDefinitions = {};
+let structureExamples = {};
 
 /**
  *  @param blueprint
@@ -100,6 +101,17 @@ function getActions(actions) {
                     pathResponse.schema["type"] = "string";
                 } else {
                     pathResponse.schema = getResponseSchema(response.content);
+
+                    if (pathResponse.schema.hasOwnProperty("$ref")) {
+                        const structureName = pathResponse.schema["$ref"].replace("#/definitions/", "");
+
+                        try {
+                            const responseBody = response.body.replace("\\n", "");
+                            structureExamples[structureName] = JSON.parse(responseBody);
+                        } catch (e) {
+                            // do nothing
+                        }
+                    }
                 }
 
                 path.responses[response.name] = pathResponse;
@@ -427,6 +439,10 @@ function getDefinitions(dataStructures) {
             ];
         } else {
             definition["properties"] = properties;
+        }
+
+        if (structureExamples.hasOwnProperty(definitionName)) {
+            definition["example"] = structureExamples[definitionName];
         }
 
         result[definitionName] = definition;

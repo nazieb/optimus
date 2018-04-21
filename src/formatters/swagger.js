@@ -72,7 +72,7 @@ function getActions(actions) {
     for (let action of actions) {
         const path = {
             description: action.description,
-            summary: action.description,
+            summary: action.name,
             consumes: [],
             produces: [],
             parameters: [],

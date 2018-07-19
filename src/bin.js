@@ -39,5 +39,6 @@ source.on("end", () => {
     } catch (e) {
         console.log("Error transforming the API Blueprint: ");
         console.log(e);
+        process.exit(1);
     }
 });
